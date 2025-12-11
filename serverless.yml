@@ -1,0 +1,44 @@
+service: users-api-java
+
+provider:
+  name: aws
+  runtime: java17
+  region: us-east-2
+  stage: dev
+  memorySize: 1024
+  timeout: 30
+  environment:
+    # Usamos el mismo nombre que la tabla Node
+    USERS_TABLE: users-api-node-dev-users
+
+  iam:
+    role:
+      name: user-api-java-role
+      statements:
+        - Effect: "Allow"
+          Action:
+            - "dynamodb:PutItem"
+            - "dynamodb:GetItem"
+            - "dynamodb:Scan"
+            - "dynamodb:UpdateItem"
+            - "dynamodb:DeleteItem"
+          Resource:
+            - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}"
+
+package:
+  artifact: target/users-api-java-1.0-SNAPSHOT.jar
+
+functions:
+  getUser:
+    handler: org.example.infrastructure.handlers.GetUserHandler
+    events:
+      - http:
+          path: users/{id}
+          method: get
+
+  createUser:
+    handler: org.example.infrastructure.handlers.SaveUserHandler
+    events:
+      - http:
+          path: users
+          method: post
